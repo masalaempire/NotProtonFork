@@ -51,6 +51,36 @@ enum NtdllPatcher {
 
 
     static let byBuild: [String: [NtdllPatch]] = [
+        "26.1.0.39808": [
+            NtdllPatch(
+                arch: .x86_64Windows,
+                payloadResource: "detour2-39808",
+                payloadSHA256: "32ce53264d2fd4db676ba4ac3fc6ee9faee57fbcd2ec6950c0281db3a50abae7",
+                caveRVA: 0xae000,
+                payloadRVA: 0xae000,
+                hooks: [NtdllHook(rva: 0x44972, stolen: [0x48, 0x83, 0xbc, 0x24, 0xf0, 0x00, 0x00, 0x00, 0x00])],
+                caveSize: 4096,
+                cavePad: 0x00,
+                machine: 0x8664,
+                magic: 0x20b,
+                imageBase: 0x170000000,
+                placement: .section
+            ),
+            NtdllPatch(
+                arch: .i386Windows,
+                payloadResource: "detour32-39808",
+                payloadSHA256: "be465bc936cafafae4aa1b4c41f668e08848492d9858c2cf2ad483a9f1ab25e5",
+                caveRVA: 0xaa000,
+                payloadRVA: 0xaa000,
+                hooks: [NtdllHook(rva: 0x43b40, stolen: [0xf6, 0x45, 0xc0, 0x01, 0x75, 0x26])],
+                caveSize: 4096,
+                cavePad: 0x00,
+                machine: 0x14c,
+                magic: 0x10b,
+                imageBase: 0x7bc00000,
+                placement: .section
+            ),
+        ],
         "27.0.0.40921": [
             NtdllPatch(
                 arch: .x86_64Windows,
@@ -471,7 +501,7 @@ enum NtdllPatcher {
     // Resources
 
     static func payload(for patch: NtdllPatch) throws -> Data {
-        guard let url = Bundle.module.url(forResource: patch.payloadResource, withExtension: "bin") else {
+        guard let url = Bundle.notProtonResources.url(forResource: patch.payloadResource, withExtension: "bin") else {
             throw StepFailure(
                 step: step,
                 detail: "\(patch.payloadResource).bin is missing from the app's resources."

@@ -1,5 +1,9 @@
 # NotProton
 
+This checkout includes an **experimental macOS Sequoia / CrossOver 26.1 port**.
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the build, changes, validation and limitations.
+The requirements below describe the upstream release.
+
 NotProton enables the Steam Play experience from Linux Steam in the macOS Steam client.
 
 This is done by forcibly enabling the Steam Play functionality in macOS Steam (which is

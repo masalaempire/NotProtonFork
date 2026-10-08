@@ -483,7 +483,6 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO)
 	@echo "==> Staged app payload in $(APP_PAYLOAD)"
 
 APP_BUNDLE  := $(OUT_DIR)/NotProton.app
-APP_BUNDLE_PAYLOAD := $(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload
 APP_ZIP     := $(OUT_DIR)/NotProton.zip
 APP_VERSION := $(shell sed -n 's/^\#define NOTPROTON_VERSION "\(.*\)"/\1/p' dylib/version.h)
 
@@ -493,8 +492,11 @@ ICONGEN  := $(OUT_DIR)/icongen
 ICON_DOC := $(OUT_DIR)/NotProton.icon
 ICON_DIR := $(OUT_DIR)/icon
 ICON_CAR := $(ICON_DIR)/Assets.car
+ICON_ICNS := app/NotProton.icns
 
-icon: $(ICON_CAR)
+# The upstream ICNS works on Sequoia; the .icon document needs a newer actool.
+icon: $(ICON_ICNS)
+icon-modern: $(ICON_CAR)
 
 $(ICONGEN): helpers/icon.swift
 	@mkdir -p $(OUT_DIR)
@@ -508,9 +510,18 @@ $(ICON_CAR): $(ICONGEN)
 	xcrun actool "$(ICON_DOC)" --compile "$(ICON_DIR)" --platform macosx \
 		--minimum-deployment-target 26.0 --app-icon NotProton \
 		--output-partial-info-plist "$(ICON_DIR)/partial.plist" >/dev/null
+	@test -s "$@"
 	@echo "==> Built $@"
 
-app: app-payload $(ICON_CAR)
+.PHONY: app-staged
+app: app-payload
+	$(MAKE) app-staged
+
+# Also usable with a verified, pre-staged release payload. This avoids rebuilding
+# the unrelated FEX bridge when developing a Rosetta-only compatibility port.
+app-staged: $(ICON_ICNS)
+	@test -s "$(APP_PAYLOAD)/bridge/x86_64-unix-lsteamclient.so" || \
+		{ echo "Stage the complete runtime payload before packaging; see COMPATIBILITY.md." >&2; exit 1; }
 	swift build --package-path app -c release
 	rm -rf "$(APP_BUNDLE)"
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS" "$(APP_BUNDLE)/Contents/Resources"
@@ -528,11 +539,13 @@ app: app-payload $(ICON_CAR)
 		"$(APP_BUNDLE)/Contents/MacOS/NotProtonApp"
 	cp -R "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
 		"$(APP_BUNDLE)/Contents/Resources/"
-	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/NotProton.icns" \
+	cp "$(ICON_ICNS)" \
 		"$(APP_BUNDLE)/Contents/Resources/"
-	@missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \
+	@resource_root="$(CURDIR)/$(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle"; \
+	if [ -d "$$resource_root/Contents/Resources" ]; then resource_root="$$resource_root/Contents/Resources"; fi; \
+	missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \
 		| while read -r rel; do \
-			[ -s "$(CURDIR)/$(APP_BUNDLE_PAYLOAD)/$$rel" ] || echo "$$rel"; \
+			[ -s "$$resource_root/payload/$$rel" ] || echo "$$rel"; \
 		done); \
 	if [ -n "$$missing" ]; then \
 		echo "==> the bundle is missing staged payload, so the app would ship without it:" >&2; \

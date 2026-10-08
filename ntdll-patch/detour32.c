@@ -61,6 +61,12 @@ struct io_status { u32 status; u32 information; };
 #define LDR_DONT_RESOLVE_REFS  0x00000002
 #define LDR_DONT_CALL_DLLMAIN  0x20000000
 
+// The build_module argument and LDR_DATA_TABLE_ENTRY.Flags are different
+// flag spaces in retail CrossOver 26.1 (Wine 11.0).
+#ifndef ARG_DONT_RESOLVE_REFS
+#define ARG_DONT_RESOLVE_REFS LDR_DONT_RESOLVE_REFS
+#endif
+
 static const u16 name_lsteam[] = {'l','s','t','e','a','m','c','l','i','e','n','t','.','d','l','l',0};
 
 static void *resolve_lsteam(struct ctx *c, void *load_path)
@@ -253,7 +259,7 @@ void detour_build_module32(struct ctx *c, void *wm, void *fp)
     if (is_steamclient32)
     {
         *WM_FLAGS(wm)  |= LDR_DONT_RESOLVE_REFS;
-        *ARG_FLAGS(fp) |= LDR_DONT_RESOLVE_REFS;
+        *ARG_FLAGS(fp) |= ARG_DONT_RESOLVE_REFS;
         restore_image_base(c, wm, sc);
     }
     else

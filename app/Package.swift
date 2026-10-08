@@ -14,7 +14,7 @@ let hasPayload = FileManager.default.fileExists(
     atPath: packageRoot.appendingPathComponent(payloadPath).path)
 let package = Package(
     name: "NotProtonApp",
-    platforms: [.macOS("26.0")],
+    platforms: [.macOS("15.0")], // Sequoia; keep in sync with Info.plist and MIN_VER.
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
     ],
@@ -26,6 +26,8 @@ let package = Package(
             resources: (hasPayload ? [.copy("Resources/payload")] : []) + [
                 .copy("Resources/payload.manifest"),
                 .copy("Resources/valve-packages.manifest"),
+                .copy("Resources/detour2-39808.bin"),
+                .copy("Resources/detour32-39808.bin"),
                 .copy("Resources/detour2.bin"),
                 .copy("Resources/detour32.bin"),
                 .copy("Resources/detour32-fex.bin"),

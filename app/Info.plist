@@ -8,8 +8,6 @@
 	<string>NotProtonApp</string>
 	<key>CFBundleIconFile</key>
 	<string>NotProton</string>
-	<key>CFBundleIconName</key>
-	<string>NotProton</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.notproton.NotProton</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -25,13 +23,16 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>26.0</string>
+	<string>15.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUFeedURL</key>
+	<!-- Disabled in this compatibility fork to avoid replacing it with upstream. -->
 	<string>https://github.com/NotProtonNot/NotProton/releases/latest/download/appcast.xml</string>
+	<key>NPEnableUpstreamUpdates</key>
+	<false/>
 	<key>SUPublicEDKey</key>
 	<string>rDOXzJ+vt12aWeu9hATgvz6q46MlRcgR4gbTfj5YuWQ=</string>
 </dict>

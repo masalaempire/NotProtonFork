@@ -217,7 +217,9 @@ struct FailureRemedyTests {
         let pane = try #require(Remedy.appManagement.settingsPane)
 
         #expect(pane.scheme == "x-apple.systempreferences")
-        #expect(pane.query == "Privacy_AppBundles")
+        // Sequoia Foundation treats this scheme as an opaque URL, so .query
+        // is nil even though the Settings destination is preserved verbatim.
+        #expect(pane.absoluteString.hasSuffix("?Privacy_AppBundles"))
     }
 }
 

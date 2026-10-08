@@ -32,6 +32,7 @@ struct NotProtonApp: App {
 
         CommandGroup(after: .appInfo) {
             Button("Check for Updates…") { updater.check() }
+                .disabled(!updater.isEnabled)
         }
 
         CommandGroup(after: .sidebar) {

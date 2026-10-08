@@ -5,12 +5,24 @@ import hashlib, pathlib, struct, sys, re, bisect, capstone
 from capstone import x86 as X86, arm64 as A64
 
 ARCH = {0x8664: 'x86_64-windows', 0x14c: 'i386-windows', 0xaa64: 'aarch64-windows'}
+RETAIL_261_I386 = '0147ffa0e554c8af65ab71520e82bd7d82b1b5d918bc56550c9116cee1f3502e'
 
 PAYLOAD = {0x8664: 864, 0x14c: 1376, 0xaa64: 868}  # detour2.bin, detour32.bin, detour64-fex.bin
 
 # Keyed by input sha256 so the comparison only runs against the build the tree pins, so a
 # new build will report derived values rather than a wall of expected mismatches
 PINNED = {
+    '5f1fbfd2c7c86e59256b31e6af08a6d64dc4a4d49b27918d4353d64d827222f3':
+        {'hookRVA': 0x44972, 'stolen': '4883bc24f000000000', 'caveRVA': 0xae000,
+         'caveSize': 4096, 'wm': 'r14', 'resume': 0x4497b, 'load_path': 0xd0,
+         'payload': '32ce53264d2fd4db676ba4ac3fc6ee9faee57fbcd2ec6950c0281db3a50abae7',
+         'exports': {'LdrGetDllHandle': 0x170014bc0, 'LdrLoadDll': 0x170015680, 'NtProtectVirtualMemory': 0x17000f380, 'NtOpenFile': 0x17000efe0, 'NtReadFile': 0x17000ea40, 'NtClose': 0x17000eb60}},
+    '0147ffa0e554c8af65ab71520e82bd7d82b1b5d918bc56550c9116cee1f3502e':
+        {'hookRVA': 0x43b40, 'stolen': 'f645c0017526', 'caveRVA': 0xaa000,
+         'caveSize': 4096, 'wm': 'esi', 'resume': 0x43b46, 'load_path': -0x54,
+         'flags_mask': 1, 'flags_slot': -0x40,
+         'payload': 'be465bc936cafafae4aa1b4c41f668e08848492d9858c2cf2ad483a9f1ab25e5',
+         'exports': {'LdrGetDllHandle': 0x7bc12c60, 'LdrLoadDll': 0x7bc13750, 'NtProtectVirtualMemory': 0x7bc0d584, 'NtOpenFile': 0x7bc0d3b4, 'NtReadFile': 0x7bc0d0e4, 'NtClose': 0x7bc0d174}},
     '04c7200b6645decb7c2d1ba6b0195abc9af83257072558d11aa72cc067ac3377':
         {'hookRVA': 0x51f15, 'stolen': '4883bc24f000000000', 'caveRVA': 0x80be0, 'wm': 'rsi',
          'resume': 0x51f1e, 'load_path': 0xd0,
@@ -326,11 +338,15 @@ def resolve_i386(pe):
 
     # The module flags are tested for bit 2 just above. Either the value is still in memory
     # or the compiler loaded it first, in which case that load starts the hook.
+    # Wine 11.0 uses Win32 DONT_RESOLVE_DLL_REFERENCES (1), whereas the
+    # Preview loader uses LDR_DONT_RESOLVE_REFS (2). Only accept the older
+    # convention for the exact retail binary inspected for this port.
+    flags_mask = (1 if hashlib.sha256(pe.d).hexdigest() == RETAIL_261_I386 else 2)
     gate = None
     for k in range(anchor - 1, max(anchor - 24, 0), -1):
         i = body[k]
         if i.mnemonic == 'test' and i.operands and i.operands[-1].type == X86.X86_OP_IMM \
-                and i.operands[-1].imm == 2:
+                and i.operands[-1].imm == flags_mask:
             gate = k
             break
     if gate is None:
@@ -386,7 +402,7 @@ def resolve_i386(pe):
             'insn': ' ; '.join(f"{i.mnemonic} {i.op_str}" for i in taken),
             'load_path': load_path, 'skip': skip, 'stole_branch': stole_branch,
             'stolen_head': b''.join(i.bytes for i in (taken[:-1] if stole_branch else taken)).hex(),
-            'flags_slot': flags_slot}
+            'flags_slot': flags_slot, 'flags_mask': flags_mask}
 
 
 def aarch64_walk(md, text, tv):
@@ -637,6 +653,9 @@ def report(path):
             slot = ((lambda v: f"{frame}+{v:#x}") if machine == 0x8664
                     else (lambda v: f"{frame}{v:+#x}"))
             line('load_path', s['load_path'], 'load_path', fmt=slot, want=want)
+    if 'flags_mask' in r:
+        line('flags_mask', r['flags_mask'], 'flags_mask')
+        line('flags_slot', r['flags_slot'], 'flags_slot')
     line('caveRVA', r['caveRVA'], 'caveRVA')
     line('caveSize', r['caveSize'], 'caveSize', fmt=str)
     need = PAYLOAD[r['machine']]
@@ -716,6 +735,7 @@ def shell_vars(path):
         out['NP_STOLEN_HEAD_BYTES'] = ','.join(
             f"0x{b:02x}" for b in bytes.fromhex(r['stolen_head']))
         out['NP_FLAGS_SLOT'] = ('%#x' if r['flags_slot'] >= 0 else '-%#x') % abs(r['flags_slot'])
+        out['NP_FLAGS_MASK'] = str(r['flags_mask'])
 
     for n, s in enumerate(r.get('sites') or [], 1):
         out[f'NP_HOOK_RVA_{n}'] = f"{s['hookRVA']:#x}"

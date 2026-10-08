@@ -94,6 +94,21 @@ enum SupportedRunners {
                 .aarch64Windows: "89e4c9e7f0a0a60462c0231ec393168f8bdb04bc8ea1dc22211f25bf3ff2c6b3",
             ]
         ),
+        // Retail 26.1 Rosetta; offsets derived from the exact shipped binaries.
+        RunnerBuild(
+            bundleVersion: "26.1.0.39808",
+            releaseVersion: "26.1",
+            flavor: nil,
+            loaderSHA256: "0fe186e04cbad945a74e29027e39d5e8e1d5e5659a5184c0378c4580c33eddc9",
+            cleanNtdll: [
+                .x86_64Windows: "5f1fbfd2c7c86e59256b31e6af08a6d64dc4a4d49b27918d4353d64d827222f3",
+                .i386Windows: "0147ffa0e554c8af65ab71520e82bd7d82b1b5d918bc56550c9116cee1f3502e",
+            ],
+            patchedNtdll: [
+                .x86_64Windows: "71176f6eb8b9be008b3ea4152658b6b7c440885e3e6683e0b46e3c57af523e47",
+                .i386Windows: "7adacbdf556c9c6e05199445110f1880168f928d149d7d01c313da8b39813209",
+            ]
+        ),
     ]
 
     static func build(loaderSHA256 hash: String) -> RunnerBuild? {
