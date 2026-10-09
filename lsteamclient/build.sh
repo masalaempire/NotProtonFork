@@ -44,8 +44,8 @@
 
 set -eu
 
-MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-15.0}
-export MACOSX_DEPLOYMENT_TARGET
+# Every Wine host object must run on Sequoia, including the Unix bridge.
+export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-15.0}"
 
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
@@ -67,7 +67,17 @@ TREE=${TREE:-$repo/build/lsteamclient}
 # The cloned runner, not the user's installed CrossOver. --install writes into this
 # tree, and the installed app has to stay stock: it is the only clean copy on the
 # machine and it is what the clone and the ntdll patcher are both taken from.
-CX_ROOT=${CX_ROOT:-$HOME/Library/Application Support/notproton/runners/current}
+if [ -z "${CX_ROOT:-}" ]; then
+	for clone in "$HOME/Library/Application Support/notproton/runners"/crossover-*/CrossOver; do
+		[ -d "$clone" ] || continue
+		if [ -n "${CX_ROOT:-}" ]; then
+			echo "==> more than one runner clone is set up, set CX_ROOT to one of them" >&2
+			exit 1
+		fi
+		CX_ROOT=$clone
+	done
+fi
+CX_ROOT=${CX_ROOT:-$HOME/Library/Application Support/notproton/runners/(none set up)}
 BRIDGE_DIR=${BRIDGE_DIR:-$HOME/Library/Application Support/notproton/bridge}
 
 install=0

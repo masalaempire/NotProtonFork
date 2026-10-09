@@ -1,81 +1,76 @@
-# Sequoia / CrossOver 26.1 compatibility port
+# NotProton 1.1.2: Sequoia and CrossOver 26.1 compatibility fork
 
-This is an experimental Apple Silicon / Rosetta port of NotProton 1.0.3 for
-macOS Sequoia 15.0+ and **CrossOver 26.1, build 26.1.0.39808**.
-It is not yet verified by launching a Windows game through Steam.
+This fork carries the changes from NotProton **1.1.2**, including its launch hotfix,
+multiple compatibility tools, APFS prefix cloning, Steam Input changes and Linux-style
+launch options. The app targets **macOS Sequoia 15.0+** on Apple Silicon.
 
-## Delivered app
+The added retail runner is **CrossOver 26.1, exact build 26.1.0.39808**. All five
+upstream 1.1.2 runner records remain: CrossOver 26.3.0.39832, plus Rosetta and FEX
+variants of Preview builds 27.0.0.40921 and 27.0.0.41069. Future unknown builds still
+need their own binary hashes and patch validation. Retaining a runner record does
+not lower that CrossOver runtime's own macOS requirement; FEX on Sequoia is untested.
 
-`out/NotProton.app` is an ad-hoc signed, self-contained release build.
-`out/NotProton-Sequoia-CrossOver26.1.zip` contains that app.
-Open the app, check that it recognizes CrossOver 26.1 Rosetta, and use its normal
-Install / Set Up Compatibility Tool workflow. The existing CrossOver activation
-check is retained. Steam must still be a build supported by NotProton's signature
-database; this port does not make arbitrary Steam versions compatible.
+## Using the update
 
-The work here did not install the integration into Steam or modify the installed
-CrossOver application. The app's setup workflow makes and patches a runner copy.
+1. Quit Steam and open `out/NotProton.app`.
+2. Use **Install** to update the integration and its components.
+3. Use **Set Up Compatibility Tool** for CrossOver 26.1 to update its copied runner.
+4. Restart Steam. A fresh setup exposes **CrossOver 26.1** in Compatibility settings.
+   Existing installs from our 1.0.3 fork retain the legacy `notproton` tool name on
+   the 26.1 runner, preserving existing Steam game mappings.
 
-## What changed
+This build does not reset existing game prefixes or reinstall game files. Normal
+setup patches a copied runner; this development work does not modify the installed
+CrossOver app or deploy changes to the user's Steam installation. CrossOver's
+activation check and Steam signature matching remain required.
 
-- App deployment target and Info.plist minimum: macOS 15.0.
-- Use ordinary SwiftUI toolbars, which build with the installed Xcode 26.2 SDK.
-- Ship the upstream classic ICNS; newer Icon Composer metadata failed with this SDK.
-- Resolve the resource bundle from Contents/Resources before SwiftPM's build-path
-  fallback, and accept both old and new SwiftPM bundle layouts when packaging.
-- Add exact loader, original DLL, patched DLL and detour SHA-256 pins for retail
-  build 26.1.0.39808. Unknown builds remain rejected.
-- Generate new 32-bit and 64-bit detours. Both DLLs need a new executable `.npdet`
-  section rather than the Preview builds' padding caves.
-- Retail Wine's 32-bit build_module argument uses DONT_RESOLVE_DLL_REFERENCES (1),
-  distinct from LDR_DATA_TABLE_ENTRY.Flags' LDR_DONT_RESOLVE_REFS (2). The new
-  detour uses the correct mask in each flag space. The resolver permits mask 1
-  only for this exact retail DLL hash. Existing Preview payloads are unchanged.
-- Explicitly export MACOSX_DEPLOYMENT_TARGET=15.0 when building Wine host code and
-  lsteamclient. The official release's x86_64 lsteamclient.so declared macOS 27.0;
-  changing the app's plist alone would not address this.
-- Disable the upstream updater to prevent replacement with the incompatible
-  upstream app. A future fork update feed must be configured deliberately.
+The upstream Sparkle updater is disabled, preventing an official update from
+replacing this compatibility fork. Update this fork manually.
 
-Wine 11.0's flag handling can also be inspected in
-[the upstream loader source](https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/loader.c).
-The patch locations and register/frame choices were resolved from the installed
-CrossOver binaries, not inferred from that source alone.
+## Compatibility changes relative to upstream 1.1.2
 
-## Validation performed on October 8, 2026
+- macOS deployment target and plist minimum are 15.0.
+- Use ordinary SwiftUI toolbars and the existing classic ICNS for Xcode 26.2.
+- Resolve packaged resources relative to the app before SwiftPM's build fallback;
+  packaging accepts both SwiftPM resource bundle layouts.
+- Add exact 26.1 loader, clean DLL and patched DLL hashes, plus a named Steam tool.
+- Allow the old 26.1 runner to retain its legacy Steam mapping during migration.
+- Apply 1.1.2's 64-bit loader hotfix to 26.1. The old 26.1 patched hash is intentionally
+  replaced. The new code returns success from the stub DLL entry point and does not
+  call lsteamclient's DllMain in the wrong loading context.
+- Independently resolved 26.1 hook, cave and required export addresses match 26.3;
+  rebuilt detours are byte-identical to the checked-in `detour2-cx26.bin` and
+  `detour32-cx26.bin`. Each build retains separate clean/patched DLL hashes.
+- Set MACOSX_DEPLOYMENT_TARGET=15.0 in Wine and Unix bridge build scripts.
 
-- Release app builds; executable and rebuilt x86_64 bridge declare macOS 15.0.
-- App passes `codesign --verify --strict` (ad-hoc signing, not notarization).
-- All 371 Swift tests pass, including opt-in tests applying the real retail DLL
-  patches in memory, checking exact output hashes, and refusing a second patch.
-- Both resolver self-tests reproduce the pinned values.
-- The rebuilt x86_64 bridge loads with RTLD_NOW against the installed retail
-  CrossOver 26.1 ntdll.so on Sequoia, and exposes the Wine entry table.
-- No end-to-end Steam game launch, overlay, achievement, controller or save test.
-  The bridge-load check is only a dynamic-linking check, not full Wine ABI proof.
-- FEX on Sequoia is outside this port's scope. Its upstream payload is retained.
+The new run script, Steam shim, Steam Input sources and launch-option hooks are
+preserved from 1.1.2. Its 26.3/Preview patch records and payloads are preserved.
 
-## Build provenance and reproduction
+## Build provenance
 
-The staged payload starts with the official
-[NotProton v1.0.3 release](https://github.com/NotProtonNot/NotProton/releases/tag/v1.0.3).
-The downloaded NotProton.zip SHA-256 is:
+The runtime payload starts with the official
+[NotProton v1.1.2 release](https://github.com/NotProtonNot/NotProton/releases/tag/v1.1.2).
+Downloaded `NotProton.zip` SHA-256:
 
-    972a5f41ab861b287ae173ef57fadc8ebcecd5e98cae0806e33ad1e57617ab24
+    8322e72aa172c95924d6295f830f68ee5a748cd30ce2da597243d0a133b1285e
 
-Its payload directory was copied to `app/Sources/NotProtonApp/Resources/payload`.
-The x86_64-unix-lsteamclient.so was then replaced with a source rebuild; the other
-runtime components remain from that release. The classic ICNS is also from that
-release. Payloads and downloaded sources are ignored build artifacts.
+All runtime files are from that release except `bridge/x86_64-unix-lsteamclient.so`,
+which is the earlier source rebuild targeting macOS 15.0. All lsteamclient authored
+sources, its Makefile.in and pinned Proton baseline are unchanged in 1.1.2, verified
+by source comparison. The official Unix bridge targets macOS 27.0, so using it
+unchanged would not support Sequoia. The official ARM64 bridge is retained and also
+requires macOS 27.0; this fork does not establish FEX support on earlier systems.
 
-Source pins for the rebuilt bridge:
+The source rebuild uses Wine 11.15 at
+`2df1ee28039cf84776eb1421ed90bd154cebb65f` and Valve Proton at
+`164e0ccd2ea2b1ec2e5d08dc97f65b184c2539ca`, with this project's lsteamclient overlays.
+Staged payload and downloaded dependencies are ignored build artifacts.
 
-- Wine 11.15: `2df1ee28039cf84776eb1421ed90bd154cebb65f`
-- Valve Proton: `164e0ccd2ea2b1ec2e5d08dc97f65b184c2539ca`
-- Local lsteamclient overlays are applied by `lsteamclient/fetch.sh`.
+## Reproduction
 
-For a fresh reproduction, extract the verified release and stage its payload as
-above, install MinGW-w64, bison and flex, then run these commands from the repo:
+Stage the verified official payload under
+`app/Sources/NotProtonApp/Resources/payload`, then replace its x86_64 Unix bridge with
+a source rebuild targeting 15.0. Install MinGW-w64, bison, flex and Capstone first.
 
 ```sh
 WINE_URL=https://github.com/wine-mirror/wine.git \
@@ -84,24 +79,35 @@ WINE_SRC_REL=../wine-github sh lsteamclient/build.sh --unix
 cp scratch/wine-build-dual/dlls/lsteamclient/lsteamclient.so \
   app/Sources/NotProtonApp/Resources/payload/bridge/x86_64-unix-lsteamclient.so
 make app-staged
-NP_TEST_CROSSOVER_261=/Applications/CrossOver.app swift test --package-path app
+NP_TEST_CROSSOVER_261=/Applications/CrossOver.app swift test --package-path app --no-parallel
 ```
 
-Stage the payload before the first SwiftPM build; if a build was started without
-it, use a fresh scratch directory so the cached conditional manifest is refreshed.
-`make app` remains the full source-build route, including the FEX bridge and Dobby.
-Do not reuse Wine/object build directories previously compiled for macOS 26/27.
-
-The checked-in detour binaries can be regenerated with Python Capstone 5.0.9 and
-MinGW-w64 (this build used Homebrew mingw-w64 14.0.0_3):
+Regenerate and validate the 26.1 DLL patches without installing them:
 
 ```sh
-sh ntdll-patch/build.sh \
-  /Applications/CrossOver.app/Contents/SharedSupport/CrossOver/lib/wine/x86_64-windows/ntdll.dll 39808
-sh ntdll-patch/build32.sh \
-  /Applications/CrossOver.app/Contents/SharedSupport/CrossOver/lib/wine/i386-windows/ntdll.dll 39808
+CX_ROOT=/Applications/CrossOver.app/Contents/SharedSupport/CrossOver \
+  sh ntdll-patch/build-ntdll.sh
 ```
 
-The scripts check the generated payload hashes. A compiler change may alter them;
-do not replace pins without inspecting and revalidating the new output.
-`bridge/load-check.c` is the small read-only dlopen probe used for the bridge check.
+The resolver and build scripts pin exact clean inputs and output hashes. Do not
+reuse object directories built for macOS 26/27 or change pins to bypass a mismatch.
+
+## Validation on October 9, 2026
+
+- All **475 Swift tests in 56 suites** passed, including real 26.1 DLL patches
+  applied in memory, pinned output hashes, second-patch refusal, tool coexistence
+  and upgrade mapping preservation.
+- The 26.1 resolver self-tests reproduced every pinned value; the complete
+  build-ntdll script regenerated and hash-checked both outputs without installation.
+- The runtime checks passed: compatibility registration/service, environment,
+  prefix seed/build/settings/routing/bridge/game-drive behavior, launch shell and
+  spawn environment. The Node compatibility panel and launch-options tests passed.
+- The x86_64 bridge loaded with RTLD_NOW against the installed CrossOver 26.1
+  ntdll.so and exposed the Wine Unix entry table. This is a linking check, not
+  proof of every Wine ABI or Steam feature.
+- The Release app built; executable and x86_64 bridge declare macOS 15.0.
+- The app passed codesign --verify --strict with ad-hoc signing, and its ZIP
+  passed unzip -t. Every packaged payload and detour matches the staged input.
+- Installed CrossOver's loader and both clean ntdll DLL hashes are unchanged.
+- No end-to-end Steam or game launch was performed by the assistant. Elite
+  Dangerous, MinEdLauncher, 26.3 runtime behavior and FEX remain untested.

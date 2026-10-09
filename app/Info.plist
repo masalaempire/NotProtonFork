@@ -28,11 +28,10 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>SUFeedURL</key>
-	<!-- Disabled in this compatibility fork to avoid replacing it with upstream. -->
-	<string>https://github.com/NotProtonNot/NotProton/releases/latest/download/appcast.xml</string>
 	<key>NPEnableUpstreamUpdates</key>
 	<false/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/NotProtonNot/NotProton/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>rDOXzJ+vt12aWeu9hATgvz6q46MlRcgR4gbTfj5YuWQ=</string>
 </dict>
